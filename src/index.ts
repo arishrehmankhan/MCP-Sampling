@@ -2,10 +2,15 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
+// Constants for server metadata
+const SERVER_VERSION = '1.0.0';
+const TOOL_COUNT = 7;
+const RESOURCE_COUNT = 4;
+
 // Create an MCP server with sampling capabilities
 const mcpServer = new McpServer({
     name: 'sampling-demo-server',
-    version: '1.0.0'
+    version: SERVER_VERSION
 });
 
 // Store roots information (will be populated when client supports roots)
@@ -887,11 +892,11 @@ mcpServer.registerResource(
                 mimeType: 'application/json',
                 text: JSON.stringify({
                     name: 'MCP Sampling Demo Server',
-                    version: '1.0.0',
+                    version: SERVER_VERSION,
                     capabilities: ['sampling', 'tools', 'resources', 'roots'],
                     description: 'A demonstration server showcasing MCP sampling, elicitation, roots, and resources features',
-                    toolCount: 7,
-                    resourceCount: 4,
+                    toolCount: TOOL_COUNT,
+                    resourceCount: RESOURCE_COUNT,
                     documentation: 'https://github.com/arishrehmankhan/MCP-Sampling'
                 }, null, 2)
             }
