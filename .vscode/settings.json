@@ -1,0 +1,7 @@
+{
+  "github.copilot.chat.codeGeneration.instructions": [
+    {
+      "text": "This project is an MCP (Model Context Protocol) server demonstrating sampling features"
+    }
+  ]
+}

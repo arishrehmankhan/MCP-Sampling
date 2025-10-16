@@ -1,0 +1,10 @@
+{
+    "servers": {
+  "sampling-demo": {
+    "command": "node",
+    "args": [
+      "${workspaceFolder}/dist/index.js"
+    ]
+  }
+}
+}
