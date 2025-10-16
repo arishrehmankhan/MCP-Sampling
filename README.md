@@ -12,7 +12,7 @@ Sampling in MCP allows servers to request LLM generations from clients. This ena
 
 ## Features
 
-This server implements seven tools that demonstrate sampling, elicitation, and roots:
+This server implements seven tools and four resources that demonstrate sampling, elicitation, roots, and resources:
 
 ### Sampling Examples
 1. **📝 summarize-text**: Summarizes any text using LLM sampling
@@ -26,16 +26,6 @@ This server implements seven tools that demonstrate sampling, elicitation, and r
 
 ### Roots Integration
 7. **🗂️ analyze-workspace**: Demonstrates the roots feature by requesting workspace roots from the client and using sampling to provide intelligent analysis and recommendations
-
-### Server Instructions
-The server implements the **instructions feature** to provide comprehensive usage guidance to AI assistants. When connected, clients can request instructions via `instructions/list` to receive:
-- Detailed tool descriptions and use cases
-- Parameter specifications and examples
-- Best practices for sampling, elicitation, and roots
-- Model selection guidance
-- Error handling patterns
-
-📖 **For implementation details, see [SERVER_INSTRUCTIONS.md](SERVER_INSTRUCTIONS.md)**
 
 ## Prerequisites
 
@@ -146,6 +136,15 @@ Use the analyze-workspace tool
 (The tool will request roots from the client, analyze your workspace structure, and provide intelligent recommendations)
 ```
 
+### Using Resources
+```
+Access resources through your MCP client:
+- mcp://server/info - View server information
+- mcp://samples/1 - Read sample data by ID (1, 2, or 3)
+- mcp://snippets/positive - Access text snippets by category
+- mcp://analyzed/review1 - Get AI-analyzed text samples
+```
+
 ## How Sampling Works
 
 When a tool is called:
@@ -179,6 +178,26 @@ Implements a guided wizard pattern with conditional questions:
 Both approaches demonstrate how MCP servers can create interactive, conversational experiences by leveraging the sampling capability.
 
 📖 **For detailed examples and usage patterns, see [ELICITATION_EXAMPLES.md](ELICITATION_EXAMPLES.md)**
+
+## How Resources Work
+
+**Resources** in MCP expose data to LLMs without performing significant computation or having side effects. Unlike tools (which are model-controlled), resources are application-driven, meaning MCP clients decide how to expose them.
+
+This server implements four types of resources:
+
+1. **Static Resources** (`mcp://server/info`): Server metadata and configuration
+2. **Dynamic Resources** (`mcp://samples/{id}`): Data served based on URI parameters
+3. **Categorized Content** (`mcp://snippets/{category}`): Pre-defined text snippets
+4. **AI-Enhanced Resources** (`mcp://analyzed/{textId}`): Resources that use sampling for intelligent data access
+
+**Key capabilities:**
+- 📦 Expose structured data without side effects
+- 🔗 Use URI templates for dynamic content
+- 🎯 Combine with sampling for AI-enhanced data
+- 📝 Support multiple MIME types (JSON, text, markdown)
+- 🔄 Application-controlled access patterns
+
+📖 **For complete implementation details, see [RESOURCES_IMPLEMENTATION.md](RESOURCES_IMPLEMENTATION.md)**
 
 ## How Roots Integration Works
 
@@ -245,11 +264,44 @@ MCP-Sampling/
 ├── .gitignore                     # Git ignore rules
 ├── README.md                      # Main documentation
 ├── ELICITATION_EXAMPLES.md        # Elicitation feature examples
-├── ROOTS_IMPLEMENTATION.md        # Roots feature implementation guide
-└── SERVER_INSTRUCTIONS.md         # Server instructions feature documentation
+└── ROOTS_IMPLEMENTATION.md        # Roots feature implementation guide
 ```
 
 ## Key Concepts
+
+### Resources in MCP
+
+**Resources** expose data to LLMs in a structured way without computation or side effects. They are fundamentally different from tools:
+
+- **Tools** are model-controlled and can take actions
+- **Resources** are application-controlled and provide read-only data
+
+**Resource Types:**
+1. **Static resources**: Fixed data like configuration or documentation
+2. **Dynamic resources**: Parameterized data using URI templates
+3. **AI-enhanced resources**: Combine resources with sampling for intelligent data access
+
+**Example:**
+```typescript
+mcpServer.registerResource(
+    'sample-data',
+    new ResourceTemplate('mcp://samples/{id}', { list: undefined }),
+    {
+        title: 'Sample Data',
+        description: 'Example data by ID'
+    },
+    async (uri, params) => {
+        const id = Array.isArray(params.id) ? params.id[0] : params.id;
+        return {
+            contents: [{
+                uri: uri.href,
+                mimeType: 'application/json',
+                text: JSON.stringify(data[id], null, 2)
+            }]
+        };
+    }
+);
+```
 
 ### Security Considerations
 
@@ -452,6 +504,7 @@ This demonstrates how servers can combine multiple MCP features (roots + samplin
 
 - [MCP Documentation](https://modelcontextprotocol.io/)
 - [MCP Specification - Sampling](https://spec.modelcontextprotocol.io/specification/server/sampling/)
+- [MCP Specification - Resources](https://modelcontextprotocol.io/specification/latest/server/resources)
 - [MCP Specification - Roots](https://modelcontextprotocol.io/specification/2025-06-18/client/roots)
 - [TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
 - [Example Servers](https://github.com/modelcontextprotocol/servers)
