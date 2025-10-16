@@ -33,6 +33,16 @@ This server implements seven tools and four resources that demonstrate sampling,
 10. **📄 text-snippets**: Categorized text snippets for analysis and demonstration
 11. **🔍 analyzed-texts**: Resources that combine with sampling to provide AI-enhanced data access
 
+### Server Instructions
+The server implements the **instructions feature** to provide comprehensive usage guidance to AI assistants. When connected, clients can request instructions via `instructions/list` to receive:
+- Detailed tool descriptions and use cases
+- Parameter specifications and examples
+- Best practices for sampling, elicitation, roots, and resources
+- Model selection guidance
+- Error handling patterns
+
+📖 **For implementation details, see [SERVER_INSTRUCTIONS.md](SERVER_INSTRUCTIONS.md)**
+
 ## Prerequisites
 
 - Node.js 18 or higher
@@ -271,7 +281,8 @@ MCP-Sampling/
 ├── README.md                      # Main documentation
 ├── ELICITATION_EXAMPLES.md        # Elicitation feature examples
 ├── ROOTS_IMPLEMENTATION.md        # Roots feature implementation guide
-└── RESOURCES_IMPLEMENTATION.md    # Resources feature implementation guide
+├── RESOURCES_IMPLEMENTATION.md    # Resources feature implementation guide
+└── SERVER_INSTRUCTIONS.md         # Server instructions feature documentation
 ```
 
 ## Key Concepts
