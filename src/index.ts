@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
@@ -863,6 +863,261 @@ ${recommendations.map((rec, idx) => `${idx + 1}. ${rec}`).join('\n')}` : ''}
     }
 );
 
+/**
+ * RESOURCES
+ * Resources expose data to LLMs without performing significant computation or side effects.
+ * They are designed to be used in an application-driven way.
+ */
+
+/**
+ * Static resource providing server information
+ */
+mcpServer.registerResource(
+    'server-info',
+    'mcp://server/info',
+    {
+        title: 'Server Information',
+        description: 'Information about this MCP sampling server',
+        mimeType: 'application/json'
+    },
+    async (uri) => ({
+        contents: [
+            {
+                uri: uri.href,
+                mimeType: 'application/json',
+                text: JSON.stringify({
+                    name: 'MCP Sampling Demo Server',
+                    version: '1.0.0',
+                    capabilities: ['sampling', 'tools', 'resources', 'roots'],
+                    description: 'A demonstration server showcasing MCP sampling, elicitation, roots, and resources features',
+                    toolCount: 7,
+                    resourceCount: 4,
+                    documentation: 'https://github.com/arishrehmankhan/MCP-Sampling'
+                }, null, 2)
+            }
+        ]
+    })
+);
+
+/**
+ * Dynamic resource with template parameters - provides example data by ID
+ */
+mcpServer.registerResource(
+    'sample-data',
+    new ResourceTemplate('mcp://samples/{id}', { list: undefined }),
+    {
+        title: 'Sample Data',
+        description: 'Example data resources indexed by ID'
+    },
+    async (uri, params) => {
+        const id = Array.isArray(params.id) ? params.id[0] : params.id;
+        
+        // Sample dataset
+        const samples: Record<string, any> = {
+            '1': {
+                id: '1',
+                title: 'Introduction to MCP',
+                content: 'The Model Context Protocol (MCP) is an open protocol that standardizes how applications provide context to LLMs.',
+                category: 'documentation',
+                tags: ['mcp', 'protocol', 'llm']
+            },
+            '2': {
+                id: '2',
+                title: 'Sampling Feature',
+                content: 'Sampling allows MCP servers to request LLM completions from clients without requiring server-side API keys.',
+                category: 'feature',
+                tags: ['sampling', 'llm', 'api']
+            },
+            '3': {
+                id: '3',
+                title: 'Resources Feature',
+                content: 'Resources expose data to LLMs without computation or side effects. They provide read-only access to information.',
+                category: 'feature',
+                tags: ['resources', 'data', 'readonly']
+            }
+        };
+
+        const sample = samples[id];
+        
+        if (!sample) {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: 'text/plain',
+                        text: `Sample with ID "${id}" not found. Available IDs: ${Object.keys(samples).join(', ')}`
+                    }
+                ]
+            };
+        }
+
+        return {
+            contents: [
+                {
+                    uri: uri.href,
+                    mimeType: 'application/json',
+                    text: JSON.stringify(sample, null, 2)
+                }
+            ]
+        };
+    }
+);
+
+/**
+ * Resource that provides text snippets for analysis
+ * This demonstrates a resource that could be used with the sampling tools
+ */
+mcpServer.registerResource(
+    'text-snippets',
+    new ResourceTemplate('mcp://snippets/{category}', { list: undefined }),
+    {
+        title: 'Text Snippets',
+        description: 'Pre-defined text snippets for analysis and demonstration'
+    },
+    async (uri, params) => {
+        const category = Array.isArray(params.category) ? params.category[0] : params.category;
+        
+        const snippets: Record<string, { title: string; text: string }> = {
+            positive: {
+                title: 'Positive Review',
+                text: 'This product absolutely exceeded my expectations! The quality is outstanding, and the customer service was impeccable. I would definitely recommend it to anyone looking for a reliable solution.'
+            },
+            negative: {
+                title: 'Negative Review',
+                text: 'Unfortunately, this product fell short of my expectations. The build quality feels cheap, and it stopped working after just a week. Very disappointed with this purchase.'
+            },
+            technical: {
+                title: 'Technical Documentation',
+                text: 'The implementation leverages a distributed architecture with microservices pattern. Each service communicates via REST APIs and message queues, ensuring scalability and fault tolerance. The system employs container orchestration for deployment.'
+            },
+            story: {
+                title: 'Short Story Prompt',
+                text: 'In a world where memories could be bought and sold, Elena discovered that her most precious memory wasn\'t hers at all. The revelation came on a Tuesday afternoon, ordinary in every way except one.'
+            }
+        };
+
+        const snippet = snippets[category];
+        
+        if (!snippet) {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: 'text/plain',
+                        text: `Snippet category "${category}" not found. Available categories: ${Object.keys(snippets).join(', ')}`
+                    }
+                ]
+            };
+        }
+
+        return {
+            contents: [
+                {
+                    uri: uri.href,
+                    mimeType: 'text/plain',
+                    text: `# ${snippet.title}\n\n${snippet.text}`,
+                    description: snippet.title
+                }
+            ]
+        };
+    }
+);
+
+/**
+ * Resource that combines resources with sampling capability
+ * Provides analyzed content using the sampling feature
+ */
+mcpServer.registerResource(
+    'analyzed-texts',
+    new ResourceTemplate('mcp://analyzed/{textId}', { list: undefined }),
+    {
+        title: 'Pre-Analyzed Texts',
+        description: 'Text samples that have been analyzed using sampling, demonstrating resource + sampling integration'
+    },
+    async (uri, params) => {
+        const textId = Array.isArray(params.textId) ? params.textId[0] : params.textId;
+        
+        // Map of text samples
+        const texts: Record<string, string> = {
+            review1: 'The restaurant had amazing ambiance and the food was delicious. Highly recommend!',
+            review2: 'Terrible service and cold food. Will not be returning.',
+            quote1: 'Innovation distinguishes between a leader and a follower.',
+            quote2: 'The only way to do great work is to love what you do.'
+        };
+
+        const text = texts[textId];
+        
+        if (!text) {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: 'text/plain',
+                        text: `Text ID "${textId}" not found. Available IDs: ${Object.keys(texts).join(', ')}`
+                    }
+                ]
+            };
+        }
+
+        try {
+            // Use sampling to analyze the text
+            const analysisResponse = await mcpServer.server.createMessage({
+                messages: [
+                    {
+                        role: 'user',
+                        content: {
+                            type: 'text',
+                            text: `Analyze this text and provide: 1) sentiment (positive/negative/neutral), 2) key themes, 3) tone. Keep it concise.\n\nText: "${text}"`
+                        }
+                    }
+                ],
+                maxTokens: 200,
+                modelPreferences: {
+                    intelligencePriority: 0.7,
+                    speedPriority: 0.8
+                }
+            });
+
+            const analysis = analysisResponse.content.type === 'text' 
+                ? analysisResponse.content.text 
+                : 'Analysis unavailable';
+
+            const result = {
+                textId,
+                originalText: text,
+                analysis,
+                analyzedAt: new Date().toISOString()
+            };
+
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: 'application/json',
+                        text: JSON.stringify(result, null, 2)
+                    }
+                ]
+            };
+        } catch (error) {
+            // Return basic information if sampling fails
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: 'application/json',
+                        text: JSON.stringify({
+                            textId,
+                            originalText: text,
+                            error: 'Sampling not available or failed',
+                            note: 'Analysis requires a client that supports sampling'
+                        }, null, 2)
+                    }
+                ]
+            };
+        }
+    }
+);
+
 // Set up stdio transport
 async function main() {
     const transport = new StdioServerTransport();
@@ -878,7 +1133,15 @@ async function main() {
     console.error('  - create-user-profile: Interactive profile creation with elicitation');
     console.error('  - product-review-wizard: Multi-step survey with conditional questions');
     console.error('  - analyze-workspace: Analyze workspace roots and provide insights');
-    console.error('\n📍 Roots feature: This server can request workspace roots from supporting clients');
+    console.error('\n📦 Available resources:');
+    console.error('  - mcp://server/info: Server information and capabilities');
+    console.error('  - mcp://samples/{id}: Sample data by ID (1, 2, 3)');
+    console.error('  - mcp://snippets/{category}: Text snippets (positive, negative, technical, story)');
+    console.error('  - mcp://analyzed/{textId}: Pre-analyzed texts with sampling (review1, review2, quote1, quote2)');
+    console.error('\n📍 Additional features:');
+    console.error('  - Roots: This server can request workspace roots from supporting clients');
+    console.error('  - Sampling: Tools use LLM sampling for intelligent responses');
+    console.error('  - Resources: Exposes structured data without side effects');
 }
 
 main().catch((error) => {
