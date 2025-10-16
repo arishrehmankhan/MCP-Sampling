@@ -12,6 +12,121 @@ const mcpServer = new McpServer({
 let clientRoots: Array<{ uri: string; name?: string }> = [];
 
 /**
+ * Server Instructions
+ * This provides guidance to AI assistants on how to effectively use this server
+ */
+const SERVER_INSTRUCTIONS = `# MCP Sampling Server - Usage Guide
+
+## Overview
+This server demonstrates MCP's **sampling** and **roots** features, allowing clients to request LLM completions and workspace information without server-side API keys.
+
+## Available Tools
+
+### 1. summarize-text
+Summarizes any text using client-side LLM sampling.
+- **Use when**: Need concise summaries of long content
+- **Parameters**: \`text\` (required), \`maxLength\` (optional words limit)
+- **Returns**: Summary with word counts
+
+### 2. analyze-sentiment
+Analyzes sentiment of text (positive/negative/neutral/mixed).
+- **Use when**: Understanding emotional tone of content
+- **Parameters**: \`text\` (required)
+- **Returns**: Sentiment classification with confidence score
+
+### 3. generate-story
+Generates creative stories based on prompts.
+- **Use when**: Need creative writing or storytelling
+- **Parameters**: \`prompt\` (required), \`length\` (short/medium/long)
+- **Returns**: Story with word count
+
+### 4. ask-question
+General question answering with optional context.
+- **Use when**: Need information or explanations
+- **Parameters**: \`question\` (required), \`context\` (optional)
+- **Returns**: Answer from LLM
+
+### 5. create-user-profile
+Interactive profile creation with automatic elicitation of missing information.
+- **Use when**: Building user profiles with incomplete data
+- **Parameters**: \`name\`, \`age\`, \`occupation\`, \`interests\` (all optional)
+- **How it works**: If fields are missing, the tool uses sampling to request them from the user
+- **Returns**: Complete profile with personalized summary
+
+### 6. product-review-wizard
+Multi-step survey with conditional questions based on responses.
+- **Use when**: Collecting structured feedback
+- **Parameters**: \`step\` (start/rating/feedback/complete), \`productName\`, \`rating\`, \`comments\`, \`improvements\`
+- **Flow**: Start → Rating → Feedback → (Conditional improvements if rating ≤ 3) → Complete
+- **Returns**: Complete review with sentiment analysis
+
+### 7. analyze-workspace
+Analyzes workspace roots and provides organizational insights.
+- **Use when**: Understanding project structure and workspace organization
+- **Parameters**: \`analyzeStructure\` (optional boolean)
+- **Requires**: Client support for roots protocol
+- **Returns**: List of roots with AI-generated analysis and recommendations
+
+## Key Concepts
+
+### Sampling Pattern
+All tools delegate LLM calls to the client:
+1. Server receives request with parameters
+2. Server calls \`createMessage()\` to request LLM completion from client
+3. Client prompts user for approval and executes with their chosen model
+4. Server receives and parses LLM response
+5. Server returns structured results
+
+**Benefit**: No server-side API keys needed; user controls which models are used.
+
+### Elicitation Pattern
+Tools can interactively gather missing information:
+- **Single-step** (create-user-profile): Detects all missing fields and requests them at once
+- **Multi-step** (product-review-wizard): Sequential state machine with conditional branching
+
+### Roots Integration
+The server can discover which directories it has access to via the roots protocol:
+- Request with: \`{ method: 'roots/list', params: {} }\`
+- Store in \`clientRoots\` array
+- Use for workspace-aware functionality
+
+## Best Practices
+
+1. **Tool Selection**: Choose the most specific tool for your task
+2. **Elicitation**: When data is incomplete, let elicitation tools gather it interactively
+3. **Multi-step Workflows**: Use wizard tools for complex, sequential data gathering
+4. **Workspace Awareness**: Use analyze-workspace first to understand available directories
+5. **Model Preferences**: The server suggests appropriate models based on task complexity
+
+## Model Selection Strategy
+The server provides hints to help clients choose appropriate models:
+- **High intelligence tasks** (story generation, analysis): Suggests Claude 3 Sonnet/Opus
+- **Speed-critical tasks** (simple sentiment): Lighter models acceptable
+- **Balanced tasks**: Intelligence/speed/cost trade-offs specified
+
+## Error Handling
+All tools return structured errors with \`isError: true\` when failures occur. Check the \`content\` field for error messages.
+
+## Testing
+Use MCP Inspector for testing: \`npx @modelcontextprotocol/inspector http://localhost:3000/mcp\`
+`;
+
+// Register the instructions capability
+mcpServer.server.setRequestHandler(
+    z.object({ method: z.literal('instructions/list') }),
+    async () => {
+        return {
+            instructions: [
+                {
+                    description: 'Comprehensive usage guide for the MCP Sampling Server',
+                    text: SERVER_INSTRUCTIONS
+                }
+            ]
+        };
+    }
+);
+
+/**
  * Tool that uses sampling to summarize text
  * This demonstrates the sampling feature where the server requests
  * LLM completions from the connected client
@@ -879,6 +994,7 @@ async function main() {
     console.error('  - product-review-wizard: Multi-step survey with conditional questions');
     console.error('  - analyze-workspace: Analyze workspace roots and provide insights');
     console.error('\n📍 Roots feature: This server can request workspace roots from supporting clients');
+    console.error('📖 Instructions feature: Clients can request usage guidance via instructions/list');
 }
 
 main().catch((error) => {
